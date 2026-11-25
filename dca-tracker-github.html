@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2b3a67">
+<title>My BTC DCA Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#14202b;--mute:#5d6b79;--line:#d5dde5;--acc:#2b3a67;--accink:#fff;--gain:#12724f;--loss:#b3402f;--c2:#d98a1f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--card:#1a232d;--ink:#e8eef4;--mute:#97a6b5;--line:#2c3945;--acc:#8fa6ee;--accink:#10161d;--gain:#4cc79a;--loss:#f0836f;--c2:#f0b34f}}
+:root[data-theme="dark"]{--bg:#10161d;--card:#1a232d;--ink:#e8eef4;--mute:#97a6b5;--line:#2c3945;--acc:#8fa6ee;--accink:#10161d;--gain:#4cc79a;--loss:#f0836f;--c2:#f0b34f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:16px 14px 40px}
+h1{font-size:20px;font-weight:800;margin:4px 0 14px}
+h2{font-size:16px;font-weight:600;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
+input{width:100%;font:inherit;font-size:17px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.row{display:flex;gap:10px}.row>div{flex:1;min-width:0}
+.hero{text-align:left}
+.hero .big{font-size:40px;font-weight:800;line-height:1.1;margin:2px 0}
+.hero .sub{font-size:15px;color:var(--mute)}
+.gain{color:var(--gain)}.loss{color:var(--loss)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px;margin-top:14px}
+.grid b{display:block;font-size:19px;font-weight:600}
+.grid span{font-size:13px;color:var(--mute)}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 14px;background:var(--acc);color:var(--accink);width:100%;margin-top:12px}
+button.ghost{background:transparent;color:var(--acc);border:1px solid var(--line);margin-top:8px}
+.hist{width:100%;border-collapse:collapse;font-size:14px}
+.hist td{padding:8px 4px;border-top:1px solid var(--line);vertical-align:middle}
+.hist td:last-child{text-align:right}
+.hist small{color:var(--mute);display:block}
+.x{width:auto;margin:0;padding:6px 10px;background:transparent;color:var(--mute);border:1px solid var(--line);font-size:13px}
+.x.sure{background:var(--loss);color:#fff;border-color:var(--loss)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.wrap{overflow-x:auto}
+textarea{width:100%;height:90px;font:12px/1.3 ui-monospace,Menlo,monospace;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin-top:8px}
+.msg{font-size:14px;margin-top:8px;min-height:20px;color:var(--mute)}
+.note{font-size:13px;color:var(--mute);margin:8px 0 0}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 4px"><a href="https://yamch9514-tech.github.io" style="color:var(--acc);font-size:14px">&larr; Home</a></p>
+<h1>My BTC DCA Tracker</h1>
+
+<div class="card">
+  <label for="price">BTC price (USD) – fills in live, or type your own</label>
+  <input id="price" type="number" inputmode="decimal" step="any">
+  <button class="ghost" id="live" type="button">Refresh live price</button>
+  <div class="msg" id="pst" role="status"></div>
+</div>
+
+<div class="card hero">
+  <div class="sub">Profit / loss</div>
+  <div class="big" id="pl">–</div>
+  <div class="sub" id="plp">–</div>
+  <div class="grid">
+    <div><b id="inv">–</b><span>Total invested</span></div>
+    <div><b id="val">–</b><span>Current value</span></div>
+    <div><b id="btc">–</b><span>BTC owned</span></div>
+    <div><b id="avg">–</b><span>Average cost per BTC</span></div>
+    <div><b id="n">–</b><span>Number of buys</span></div>
+    <div><b id="gap">–</b><span>Price vs your average</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Add a buy</h2>
+  <div class="row">
+    <div><label for="amt">Amount paid (USD, incl. fee)</label><input id="amt" type="number" inputmode="decimal" step="any" value="20"></div>
+    <div><label for="dt">Date</label><input id="dt" type="date"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div><label for="pp">Price per BTC</label><input id="pp" type="number" inputmode="decimal" step="any"></div>
+    <div><label for="got">BTC received</label><input id="got" type="number" inputmode="decimal" step="any"></div>
+  </div>
+  <p class="note">Fill in either price or BTC received – the other one fills itself.</p>
+  <button id="add">Save buy</button>
+  <div class="msg" id="addmsg" role="status"></div>
+</div>
+
+<div class="card">
+  <h2>Last 20 buys</h2>
+  <div class="wrap"><svg id="chart" viewBox="0 0 340 170" width="100%" role="img" aria-label="Price paid and average cost for your last 20 buys"></svg></div>
+  <div class="legend"><span><i style="background:var(--c2)"></i>Price you paid</span><span><i style="background:var(--acc)"></i>Your average cost</span><span><i style="background:var(--mute);height:0;border-top:2px dashed var(--mute)"></i>Today’s price</span></div>
+</div>
+
+<div class="card">
+  <h2>Profit / loss over time</h2>
+  <svg id="c_pl" viewBox="0 0 340 170" width="100%" role="img" aria-label="Profit or loss after each buy"></svg>
+  <p class="note">Each point is your position right after that buy, using the price you paid as the market price then. The last point uses today’s price.</p>
+</div>
+
+<div class="card">
+  <h2>Money in vs. value</h2>
+  <svg id="c_iv" viewBox="0 0 340 170" width="100%" role="img" aria-label="Total invested and portfolio value over time"></svg>
+  <div class="legend"><span><i style="background:var(--mute)"></i>Total invested</span><span><i style="background:var(--acc)"></i>Value of your BTC</span></div>
+</div>
+
+<div class="card">
+  <h2>BTC accumulated</h2>
+  <svg id="c_btc" viewBox="0 0 340 170" width="100%" role="img" aria-label="Total BTC owned after each buy"></svg>
+  <p class="note" id="c_btc_n"></p>
+</div>
+
+<div class="card">
+  <h2>Buy history</h2>
+  <table class="hist"><tbody id="hist"></tbody></table>
+  <button class="ghost" id="more">Show all buys</button>
+</div>
+
+<div class="card">
+  <h2>Backup</h2>
+  <p class="note" style="margin-top:0">Your buys are saved on this phone, in this browser. Copy a backup now and then and keep it in Notes or WhatsApp.</p>
+  <button class="ghost" id="exp">Show backup text</button>
+  <button class="ghost" id="imp">Restore from pasted text</button>
+  <textarea id="box" placeholder="Backup text appears here. To restore, paste it here and tap Restore." aria-label="Backup text"></textarea>
+  <div class="msg" id="bmsg" role="status"></div>
+</div>
+</main>
+
+<script>
+const SEED=[];
+const KEY='dca-v1';
+let S=null;
+try{const r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}
+if(!S||!Array.isArray(S.buys)){S={price:60106,buys:SEED.map(x=>({a:x[0],b:x[1]}))};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const $=id=>document.getElementById(id);
+const usd=(v,d=2)=>(v<0?'-':'')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%';
+let showAll=false,armed=-1;
+
+function totals(){
+  let inv=0,b=0;S.buys.forEach(x=>{inv+=x.a;b+=x.b});
+  const avg=b?inv/b:0,val=b*S.price,pl=val-inv;
+  return{inv,b,avg,val,pl,pp:inv?pl/inv:0,gap:avg?S.price/avg-1:0};
+}
+function render(){
+  const t=totals();
+  $('price').value=S.price;
+  const cls=t.pl>=0?'gain':'loss';
+  $('pl').textContent=(t.pl>=0?'+':'')+usd(t.pl);$('pl').className='big '+cls;
+  $('plp').textContent=pct(t.pp)+' on '+usd(t.inv,0)+' invested';
+  $('inv').textContent=usd(t.inv);$('val').textContent=usd(t.val);
+  $('btc').textContent=t.b.toFixed(8);$('avg').textContent=usd(t.avg);
+  $('n').textContent=S.buys.length;
+  $('gap').textContent=pct(t.gap);$('gap').className=t.gap>=0?'gain':'loss';
+  hist();chart();charts2();
+}
+function hist(){
+  const rows=[];const n=S.buys.length;const lim=showAll?n:Math.min(15,n);
+  for(let i=n-1;i>=n-lim;i--){
+    const x=S.buys[i];
+    rows.push('<tr><td><b>#'+(i+1)+'</b>'+(x.d?'<small>'+x.d+'</small>':'')+'</td><td>'+usd(x.a)+'<small>'+x.b.toFixed(8)+' BTC</small></td><td>'+usd(x.a/x.b,0)+'<small>per BTC</small></td><td><button class="x'+(armed===i?' sure':'')+'" data-i="'+i+'">'+(armed===i?'Sure?':'Delete')+'</button></td></tr>');
+  }
+  $('hist').innerHTML=rows.join('')||'<tr><td>No buys yet.</td></tr>';
+  $('more').style.display=n>15?'block':'none';
+  $('more').textContent=showAll?'Show latest 15 only':'Show all '+n+' buys';
+}
+function chart(){
+  const n=S.buys.length,k=Math.min(20,n),svg=$('chart');
+  if(!k){svg.innerHTML='';return}
+  let inv=0,b=0;const paid=[],avg=[];
+  S.buys.forEach((x,i)=>{inv+=x.a;b+=x.b;if(i>=n-k){paid.push(x.a/x.b);avg.push(inv/b)}});
+  const all=paid.concat(avg,[S.price]);
+  let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*.1||1;lo-=pad;hi+=pad;
+  const W=340,H=170,L=46,R=8,T=8,B=22,X=i=>L+(k===1?0:i*(W-L-R)/(k-1)),Y=v=>T+(hi-v)*(H-T-B)/(hi-lo);
+  const line=(a,c)=>'<polyline fill="none" stroke="'+c+'" stroke-width="2.2" stroke-linejoin="round" points="'+a.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')+'"/>';
+  let g='';
+  for(let j=0;j<4;j++){const v=lo+(hi-lo)*j/3,y=Y(v);g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(L-5)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+Math.round(v/1000)+'k</text>'}
+  g+='<text x="'+L+'" y="'+(H-5)+'" font-size="10" fill="var(--mute)">buy #'+(n-k+1)+'</text><text x="'+(W-R)+'" y="'+(H-5)+'" text-anchor="end" font-size="10" fill="var(--mute)">#'+n+'</text>';
+  g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(S.price)+'" y2="'+Y(S.price)+'" stroke="var(--mute)" stroke-width="1.6" stroke-dasharray="5 4"/>';
+  svg.innerHTML=g+line(paid,'var(--c2)')+line(avg,'var(--acc)');
+}
+function lc(id,series,fmt,zero){
+  const svg=$(id),W=340,H=170,L=52,R=8,T=8,B=22;
+  const all=[].concat(...series.map(s=>s.v));if(!all.length){svg.innerHTML='';return}
+  let lo=Math.min(...all,zero?0:Infinity),hi=Math.max(...all,zero?0:-Infinity);
+  const pad=(hi-lo)*.08||1;lo-=pad;hi+=pad;
+  const k=series[0].v.length,X=i=>L+(k===1?0:i*(W-L-R)/(k-1)),Y=v=>T+(hi-v)*(H-T-B)/(hi-lo);
+  let g='';
+  for(let j=0;j<4;j++){const v=lo+(hi-lo)*j/3,y=Y(v);g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(L-5)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="var(--mute)">'+fmt(v)+'</text>'}
+  if(zero)g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(0)+'" y2="'+Y(0)+'" stroke="var(--ink)" stroke-width="1.2"/>';
+  g+='<text x="'+L+'" y="'+(H-5)+'" font-size="10" fill="var(--mute)">buy #1</text><text x="'+(W-R)+'" y="'+(H-5)+'" text-anchor="end" font-size="10" fill="var(--mute)">today</text>';
+  series.forEach(s=>{
+    const pts=s.v.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+    if(s.area){const z=Y(Math.max(lo,Math.min(hi,0)));g+='<polygon fill="'+s.c+'" fill-opacity=".15" points="'+X(0).toFixed(1)+','+z+' '+pts+' '+X(k-1).toFixed(1)+','+z+'"/>'}
+    g+='<polyline fill="none" stroke="'+s.c+'" stroke-width="2.2" stroke-linejoin="round" points="'+pts+'"/>';
+  });
+  svg.innerHTML=g;
+}
+function charts2(){
+  let ci=0,cb=0;const inv=[],val=[],pl=[],bt=[];
+  S.buys.forEach(x=>{ci+=x.a;cb+=x.b;inv.push(ci);bt.push(cb);const v=cb*(x.a/x.b);val.push(v);pl.push(v-ci)});
+  if(!S.buys.length){['c_pl','c_iv','c_btc'].forEach(i=>$(i).innerHTML='');return}
+  inv.push(ci);val.push(cb*S.price);pl.push(cb*S.price-ci);bt.push(cb);
+  const k=v=>v>=1000||v<=-1000?(v/1000).toFixed(1)+'k':Math.round(v);
+  const last=pl[pl.length-1];
+  lc('c_pl',[{v:pl,c:last>=0?'var(--gain)':'var(--loss)',area:true}],v=>(v<0?'-':'')+'$'+k(Math.abs(v)),true);
+  lc('c_iv',[{v:inv,c:'var(--mute)'},{v:val,c:'var(--acc)'}],v=>'$'+k(v),false);
+  lc('c_btc',[{v:bt,c:'var(--c2)',area:true}],v=>v.toFixed(3),false);
+  const per=S.buys.length?cb/S.buys.length:0;
+  $('c_btc_n').textContent='You own '+cb.toFixed(8)+' BTC, about '+per.toFixed(6)+' BTC per buy on average.';
+}
+$('price').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(v>0){S.price=v;save();const c=armed;render();$('price').focus()}});
+$('hist').addEventListener('click',e=>{
+  const bt=e.target.closest('button');if(!bt)return;const i=+bt.dataset.i;
+  if(armed===i){S.buys.splice(i,1);armed=-1;save()}else armed=i;
+  render();
+});
+$('more').onclick=()=>{showAll=!showAll;hist()};
+// add buy
+const f=n=>parseFloat($(n).value);
+$('pp').addEventListener('input',()=>{const a=f('amt'),p=f('pp');$('got').value=(a>0&&p>0)?(a/p).toFixed(8):''});
+$('got').addEventListener('input',()=>{const a=f('amt'),g=f('got');$('pp').value=(a>0&&g>0)?(a/g).toFixed(2):''});
+$('amt').addEventListener('input',()=>{const a=f('amt'),p=f('pp');if(a>0&&p>0)$('got').value=(a/p).toFixed(8)});
+$('dt').value=new Date().toISOString().slice(0,10);
+$('add').onclick=()=>{
+  const a=f('amt');let g=f('got');const p=f('pp');
+  if(!(g>0)&&p>0&&a>0)g=a/p;
+  if(!(a>0)||!(g>0)){$('addmsg').textContent='Enter the amount paid, plus either the price per BTC or the BTC received.';return}
+  S.buys.push({a:a,b:g,d:$('dt').value||undefined});save();
+  $('pp').value='';$('got').value='';
+  $('addmsg').textContent='Saved as buy #'+S.buys.length+'.';
+  render();
+};
+// backup
+$('exp').onclick=async()=>{
+  const txt=JSON.stringify(S);$('box').value=txt;$('box').select();
+  let ok=false;try{await navigator.clipboard.writeText(txt);ok=true}catch(e){}
+  $('bmsg').textContent=ok?'Copied. Paste it into Notes or WhatsApp to keep it safe.':'Select all the text above, copy it, and keep it in Notes.';
+};
+$('imp').onclick=()=>{
+  try{
+    const d=JSON.parse($('box').value);
+    if(!d||!Array.isArray(d.buys)||!d.buys.every(x=>x.a>0&&x.b>0))throw 0;
+    S={price:d.price>0?d.price:S.price,buys:d.buys};save();render();$('bmsg').textContent='Restored '+S.buys.length+' buys.';
+  }catch(e){$('bmsg').textContent='That text isn’t a valid backup. Paste the whole backup text and try again.'}
+};
+async function live(){
+  const st=$('pst');st.textContent='Fetching live price…';
+  const srcs=[['https://api.coinbase.com/v2/prices/BTC-USD/spot',j=>parseFloat(j.data.amount)],['https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',j=>j.bitcoin.usd]];
+  for(const s of srcs){
+    try{
+      const r=await fetch(s[0],{cache:'no-store'});if(!r.ok)continue;
+      const p=s[1](await r.json());
+      if(p>0){S.price=p;save();render();st.textContent='Live price updated at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});return}
+    }catch(e){}
+  }
+  st.textContent='Couldn’t fetch the live price (offline?). Showing your last saved price – you can type one.';
+}
+$('live').onclick=live;
+render();
+live();
+</script>
+</body>
+</html>
